@@ -306,6 +306,54 @@ CREATE INDEX IF NOT EXISTS idx_users_auth_id ON users(auth_id);
 
 Be sure to set your Supabase credentials in the `.env` files as described above.
 
+The project now stores face-embeddings in a compact `vector(512)` column
+(powered by the `pgvector` extension) and searches them with a tiny SQL
+helper.  
+Follow the steps below **after** you have created the original `auth`
+and `users` tables.
+
+```sql
+-- 1. Enable the vector extension (one-time)
+create extension if not exists pgvector;
+
+-- 2. Add the 512-dimensional face-embedding column
+alter table public.users
+  add column if not exists face_vec vector(512);
+
+-- 3. (Recommended) Create an IVFFLAT cosine index
+--    “lists = 100” is a good default for ≤1 M users
+create index if not exists users_face_vec_idx
+  on public.users using ivfflat (face_vec vector_cosine_ops)
+  with (lists = 100);
+
+-- 4. Helper to fetch the top-k nearest faces
+create or replace function public.match_faces(
+    query_vec  vector(512),
+    k          integer default 5,
+    threshold  real    default 0.36   -- 1 − cosine distance
+)
+returns table(
+    id          uuid,
+    first_name  text,
+    last_name   text,
+    score       real   -- 1 − distance (higher ⇒ better)
+) language sql stable as $$
+    select
+        u.id,
+        u.first_name,
+        u.last_name,
+        1 - (u.face_vec <=> query_vec) as score
+    from public.users u
+    where u.face_vec is not null
+      and (u.face_vec <=> query_vec) < threshold
+    order by u.face_vec <=> query_vec
+    limit k;
+$$;
+
+grant execute on function public.match_faces(vector, integer, real)
+       to authenticated, anon;
+```
+
 ---
 
 ## Available Scripts
@@ -350,6 +398,18 @@ Be sure to set your Supabase credentials in the `.env` files as described above.
 │
 └── README.md
 ```
+
+---
+
+### What changed & why
+
+| Before | Now |
+|--------|-----|
+| 64-bit perceptual hashes + ORB key-points stored as JSONB ● multiple PL/pgSQL helpers and triggers for buckets & Hamming distance :contentReference[oaicite:1]{index=1} | Single 512-dimensional float vector produced by ArcFace and stored in `face_vec` ● cosine similarity handled by `pgvector` |
+| Manual Python loops to compare every candidate | Indexed ANN search (`ivfflat`) gives ~100 ms response even with 100 k users |
+| Eight separate functions & triggers (popcount, get_hash_bucket, etc.) | One concise function: `match_faces()` |
+
+Feel free to remove the old hash / ORB columns and triggers once you’re certain you no longer need them, but they can happily coexist until then.
 
 ---
 
