@@ -5,7 +5,7 @@ import cv2, numpy as np
 from utils.face_utils import get_face_embedding
 from database.supabase_client import supabase  # your existing helper
 
-router = APIRouter(prefix="/api/face", tags=["face"])
+router = APIRouter(tags=["face"])
 
 
 # ------------------------------------------------------------------ #
