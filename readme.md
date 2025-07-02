@@ -16,7 +16,7 @@
 ## Tech Stack
 
 - **Frontend**: Next.js, Tailwind CSS, Framer Motion
-- **Backend**: FastAPI (Python), OpenCV
+- **Backend**: FastAPI (Python), OpenCV (feature extraction), InsightFace (RetinaFace + ArcFace via ONNX)
 - **Database**: Supabase PostgreSQL
 - **Authentication**: NextAuth.js (Credential Provider)
 
@@ -314,7 +314,7 @@ and `users` tables.
 
 ```sql
 -- 1. Enable the vector extension (one-time)
-create extension if not exists pgvector;
+create extension if not exists vector;
 
 -- 2. Add the 512-dimensional face-embedding column
 alter table public.users
