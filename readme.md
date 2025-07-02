@@ -59,6 +59,7 @@
 3. **Set up Python virtual environment and install backend dependencies:**
 
    **On Windows:**
+
    ```bash
    cd ../backend
    
@@ -73,6 +74,7 @@
    ```
 
    **On macOS/Linux:**
+
    ```bash
    cd ../backend
    
@@ -96,6 +98,7 @@
 5. **Run the development servers:**
 
    **Backend (FastAPI):**
+
    ```bash
    cd backend
    
@@ -107,6 +110,7 @@
    ```
 
    **Frontend (Next.js):**
+
    ```bash
    cd frontend
    pnpm dev
@@ -122,6 +126,7 @@
 ### Why Use a Virtual Environment?
 
 A virtual environment helps you:
+
 - Isolate project dependencies from system-wide Python packages
 - Avoid version conflicts between different projects
 - Maintain clean, reproducible development environments
@@ -130,6 +135,7 @@ A virtual environment helps you:
 ### Managing Your Virtual Environment
 
 **Activate the environment** (do this every time you work on the project):
+
 ```bash
 # Windows
 venv\Scripts\activate
@@ -141,17 +147,20 @@ source venv/bin/activate
 When activated, your terminal prompt will show `(venv)` at the beginning.
 
 **Install new packages** (only when virtual environment is activated):
+
 ```bash
 pip install package-name
 pip freeze > requirements.txt  # Update requirements file
 ```
 
 **Deactivate the environment** (when you're done working):
+
 ```bash
 deactivate
 ```
 
 **Recreate the environment** (if needed):
+
 ```bash
 # Remove existing environment
 rm -rf venv  # macOS/Linux
@@ -359,12 +368,14 @@ grant execute on function public.match_faces(vector, integer, real)
 ## Available Scripts
 
 ### Frontend (Next.js)
+
 - `pnpm dev` — Start the development server
 - `pnpm build` — Build the application for production
 - `pnpm start` — Start the production server
 - `pnpm lint` — Run ESLint
 
 ### Backend (FastAPI)
+
 **Note:** Always activate the virtual environment before running these commands.
 
 - `uvicorn main:app --reload` — Start the development server
@@ -418,16 +429,19 @@ Feel free to remove the old hash / ORB columns and triggers once you’re certai
 ### Common Issues
 
 **Virtual environment not activating:**
+
 - Make sure you're in the correct directory (`backend/`)
 - Check that the virtual environment was created successfully
 - Try recreating the virtual environment if activation fails
 
 **Package installation errors:**
+
 - Ensure the virtual environment is activated
 - Try upgrading pip: `pip install --upgrade pip`
 - For OpenCV issues on some systems, you might need: `pip install opencv-python-headless`
 
 **Port already in use:**
+
 - Change the port in the FastAPI command: `uvicorn main:app --reload --port 8001`
 - Or kill the process using the port
 
