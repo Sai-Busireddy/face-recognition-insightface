@@ -32,7 +32,7 @@ export default function PersonForm({ faceImage, thumbImage }: PersonFormProps) {
 
   async function fetchToken() {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_HOST_URL}/api/token`, {
+      const response = await fetch("/api/token", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -69,8 +69,8 @@ export default function PersonForm({ faceImage, thumbImage }: PersonFormProps) {
     startTransition(async () => {
       try {
         toast.info("Saving user information...");
-        
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/register`, {
+
+        const res = await fetch("/api/register", {
           method: "POST",
           body: JSON.stringify({
             user_id : session.user.id,

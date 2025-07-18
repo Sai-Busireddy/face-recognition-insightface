@@ -1,6 +1,6 @@
 # Fingerprint & Face Verification
 
-## A modern web application for secure, lightning-fast biometric verification using fingerprints and facial recognition.
+## A modern web application for secure, lightning-fast biometric verification using fingerprints and facial recognition
 
 ## Table of Contents
 
@@ -421,6 +421,62 @@ grant execute on function public.match_faces(vector, integer, real)
 | Eight separate functions & triggers (popcount, get_hash_bucket, etc.) | One concise function: `match_faces()` |
 
 Feel free to remove the old hash / ORB columns and triggers once you’re certain you no longer need them, but they can happily coexist until then.
+
+---
+
+## What’s New — July 2025: Mobile Testing over Local Wi‑Fi
+
+### 🚀 Why
+
+Run the full stack on your laptop while accessing it **securely (HTTPS)** from any phone on the same network—no tunnels, no mixed‑content camera errors.
+
+---
+
+### 🔧 Key Changes
+
+| Area | Before | Now |
+|------|--------|-----|
+| **Environment** | Scattered localhost URLs | Single source of truth in `.env.local` (`HOST_IP`, ports) |
+| **Frontend ⇄ Backend** | Global proxy broke NextAuth | Selective rewrites (`users`, `face`, `register`) |
+| **API Calls** | Hard‑coded URLs caused `/api/api/*` | All fetches are **relative** (`/api/...`) |
+| **Save Info** | ECONNRESET on `/api/register` | Rewrite fixes no‑slash → slash redirect |
+| **Cert / Env Safety** | Risk of committing secrets | `.gitignore` excludes certs & local envs |
+
+---
+
+### 🛠  Setup & Test on a Phone
+
+1. **Install and trust mkcert (one‑time)**
+
+   ```bash
+   choco install mkcert -y
+   mkcert -install
+    ```
+
+2. **Update `.env.local` with your current LAN IP**  
+
+   Open `frontend/.env.local` and change just these three lines each time your Wi‑Fi IP changes:
+
+   ```dotenv
+   HOST_IP=192.168.0.xxx
+   NEXT_PUBLIC_HOST_URL=https://192.168.0.xxx:3000
+   NEXTAUTH_URL=https://192.168.0.xxx:3000
+    ```
+
+3. **Start the backend (HTTP)**
+
+   ```bash
+   cd backend
+   \venv\Scripts\activate
+   uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    ```
+
+4. **Start the frontend (HTTPS, accessible on LAN)**
+
+   ```bash
+   cd frontend
+   pnpm exec next dev --hostname 0.0.0.0 --port 3000 --experimental-https
+   ```
 
 ---
 

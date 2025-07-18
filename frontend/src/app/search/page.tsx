@@ -58,7 +58,7 @@ export default function SearchPage() {
 
   async function fetchToken() {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_HOST_URL}/api/token`, {
+      const response = await fetch("/api/token", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -190,7 +190,7 @@ export default function SearchPage() {
     });
          
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/search`, {
+      const res = await fetch("/api/users/search", {
         method: "POST",
         body: JSON.stringify({ image: searchImage, type: searchType }),
         headers: {

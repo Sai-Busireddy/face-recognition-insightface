@@ -73,3 +73,9 @@ backend/pip-log.txt
 backend/pip-delete-this-directory.txt
 backend/.pytest_cache/
 backend/htmlcov/
+
+# ─── Local HTTPS certs ──────────────────────────────
+frontend/certs/
+frontend/certificates/
+*.pem
+*.key
