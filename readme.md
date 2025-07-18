@@ -478,6 +478,14 @@ Run the full stack on your laptop while accessing it **securely (HTTPS)** from a
    pnpm exec next dev --hostname 0.0.0.0 --port 3000 --experimental-https
    ```
 
+5. **Open on phone → https://<HOST_IP>:3000 → accept cert warning once → login → use camera.**
+
+    Add a Windows firewall inbound rule for TCP 3000 once and forget about it:
+
+    ```bash
+    New-NetFirewallRule -DisplayName "FaceRecog-Frontend-3000" -Direction Inbound -Action Allow -Protocol TCP -LocalPort 3000 -Profile Private
+    ```
+
 ---
 
 ## Troubleshooting
