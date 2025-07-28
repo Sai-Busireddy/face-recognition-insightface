@@ -7,18 +7,34 @@ import 'react-image-crop/dist/ReactCrop.css';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Image from "next/image";
 import Link from "next/link";
 import { Camera, Fingerprint, Home, Loader2, Image as ImageIcon, Check, X, Crop as CropIcon } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+
+/** ─── Search‑API response types ─────────────────────────────────── */
+type UserRecord = {
+  first_name: string;
+  last_name: string;
+  address: string;
+  additional_info: string;
+  face_image: string;
+  thumb_image: string;
+};
+
+type PublicProfileRecord = {
+  id: string;
+  display_name: string | null;
+  platform: string;
+  image_url: string | null;
+};
+
+type Match =
+  | { source: "user"; score: number; record: UserRecord }
+  | { source: "public_profile"; score: number; record: PublicProfileRecord };
+/* ────────────────────────────────────────────────────────────────── */
 
 export default function SearchPage() {
   const webcamRef = useRef<Webcam>(null);
@@ -36,18 +52,7 @@ export default function SearchPage() {
     y: 25
   });
   const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
-  const [result, setResult] = useState<{
-    match: boolean;
-    user: {
-      first_name: string;
-      last_name: string;
-      address: string;
-      additional_info: string;
-      face_image: string;
-      thumb_image: string;
-    };
-    distance: number;
-  } | null>(null);
+  const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchType, setSearchType] = useState<"face" | "thumb">("thumb");
   const [token, setToken] = useState<string | null>(null);
@@ -177,49 +182,52 @@ export default function SearchPage() {
   const handleSearch = async () => {
     if (!token) {
       toast.error("Authentication required", {
-        description: "Please wait while we authenticate you"
+        description: "Please wait while we authenticate you",
       });
       await fetchToken();
       return;
     }
 
     setLoading(true);
-    setResult(null);
+    setMatches([]);                                // clear old results
+
     toast.info("Searching database for matches...", {
-      description: "This may take a few moments."
+      description: "This may take a few moments.",
     });
-         
+
     try {
       const res = await fetch("/api/users/search", {
         method: "POST",
         body: JSON.stringify({ image: searchImage, type: searchType }),
         headers: {
-           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
       });
 
-      if (!res.ok) {
-        throw new Error("Search request failed");
-      }
+      if (!res.ok) throw new Error("Search request failed");
 
       const data = await res.json();
-      setResult(data);
-             
-      if (data.match) {
-        toast.success("Match found!", {
-          description: `Found a match with ${data.user.first_name} ${data.user.last_name}`
-        });
+
+      if (Array.isArray(data.matches)) {
+        setMatches(data.matches);                  // ✅ store all matches
+      }
+
+      if (data.matches?.length) {
+        const first = data.matches[0];
+        const msg =
+          first.source === "user"
+            ? `Found a match with ${first.record.first_name} ${first.record.last_name}`
+            : `Found a public profile match (${first.record.display_name ?? "Unknown"})`;
+        toast.success("Match found!", { description: msg });
       } else {
         toast.error("No match found", {
-          description: "The biometric data does not match any records in our system."
+          description: "The biometric data does not match any records in our system.",
         });
       }
-    } catch (error) {
-      console.error("Search error:", error);
-      toast.error("Search failed", {
-        description: "Please try again later"
-      });
+    } catch (err) {
+      console.error(err);
+      toast.error("Search failed", { description: "Please try again later" });
     } finally {
       setLoading(false);
     }
@@ -483,108 +491,134 @@ export default function SearchPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-6">
-                {result ? (
+                {matches.length ? (
+                  /* ─── WHEN WE HAVE ≥1 MATCH ─── */
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="space-y-6"
+                    className="space-y-10"
                   >
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-violet-900/50 to-violet-800/50 border border-violet-700/20 shadow-lg"
-                    >
-                      <span className="font-semibold text-violet-100">Match Found:</span>
-                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${result.match ? "bg-green-900/30 text-green-400" : "bg-red-900/30 text-red-400"}`}>
-                        {result.match ? "Yes" : "No"}
-                      </span>
-                    </motion.div>
-                                         
-                    {result.match && (
-                      <>
-                        <motion.div
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.1 }}
-                          className="grid gap-4 p-4 rounded-xl bg-gradient-to-r from-violet-900/30 to-violet-800/30 border border-violet-700/20 shadow-lg"
-                        >
-                          <div className="grid gap-2">
-                            <span className="font-semibold text-violet-100">Name:</span>
-                            <span className="text-violet-300 bg-black/20 p-2 rounded-lg">{result.user.first_name} {result.user.last_name}</span>
-                          </div>
-                          <div className="grid gap-2">
-                            <span className="font-semibold text-violet-100">Address:</span>
-                            <span className="text-violet-300 bg-black/20 p-2 rounded-lg">{result.user.address}</span>
-                          </div>
-                          {result.user.additional_info && (
-                            <div className="grid gap-2">
-                              <span className="font-semibold text-violet-100">Additional Info:</span>
-                              <span className="text-violet-300 bg-black/20 p-2 rounded-lg">{result.user.additional_info}</span>
-                            </div>
-                          )}
-                        </motion.div>
+                    {matches.map((m, idx) => {
+                      const isUser = m.source === "user";
+                      const disp = isUser
+                        ? {
+                            name: `${m.record.first_name} ${m.record.last_name}`,
+                            subtitle: "Registered user",
+                            address: m.record.address,
+                            extra: m.record.additional_info,
+                            faceImg: m.record.face_image,
+                            thumbImg: m.record.thumb_image,
+                          }
+                        : {
+                            name: m.record.display_name ?? "Unknown",
+                            subtitle: `Public profile (${m.record.platform})`,
+                            address: undefined,
+                            extra: undefined,
+                            faceImg: m.record.image_url,
+                            thumbImg: undefined,
+                          };
 
+                      return (
                         <motion.div
+                          key={idx}
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.2 }}
-                          className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                          transition={{ delay: 0.1 + idx * 0.1 }}
+                          className="space-y-6"
                         >
-                          {result.user.face_image && (
-                            <div className="space-y-2">
-                              <span className="font-semibold text-violet-100">Face Image:</span>
-                              <div className="aspect-video bg-gradient-to-br from-violet-900/30 to-violet-800/30 rounded-xl overflow-hidden group shadow-lg flex items-center justify-center">
-                                <Image
-                                  src={result.user.face_image}
-                                  alt="Face"
-                                  width={300}
-                                  height={200}
-                                  className="max-w-full max-h-[200px] w-auto h-auto object-contain transition-transform duration-500 group-hover:scale-105"
-                                />
-                              </div>
+                          {/* Header pill */}
+                          <div className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-violet-900/50 to-violet-800/50 border border-violet-700/20 shadow-lg">
+                            <span className="font-semibold text-violet-100">Source:</span>
+                            <span className="px-3 py-1 rounded-full text-sm font-medium bg-black/30 text-violet-200">
+                              {disp.subtitle}
+                            </span>
+                          </div>
+
+                          {/* Details */}
+                          <div className="grid gap-4 p-4 rounded-xl bg-gradient-to-r from-violet-900/30 to-violet-800/30 border border-violet-700/20 shadow-lg">
+                            <div className="grid gap-2">
+                              <span className="font-semibold text-violet-100">Name:</span>
+                              <span className="text-violet-300 bg-black/20 p-2 rounded-lg">
+                                {disp.name}
+                              </span>
                             </div>
-                          )}
-                          {result.user.thumb_image && (
-                            <div className="space-y-2">
-                              <span className="font-semibold text-violet-100">Thumb Image:</span>
-                              <div className="aspect-video bg-gradient-to-br from-violet-900/30 to-violet-800/30 rounded-xl overflow-hidden group shadow-lg flex items-center justify-center">
-                                <Image
-                                  src={result.user.thumb_image}
-                                  alt="Thumb"
-                                  width={300}
-                                  height={200}
-                                  className="max-w-full max-h-[200px] w-auto h-auto object-contain transition-transform duration-500 group-hover:scale-105"
-                                />
+
+                            {disp.address && (
+                              <div className="grid gap-2">
+                                <span className="font-semibold text-violet-100">Address:</span>
+                                <span className="text-violet-300 bg-black/20 p-2 rounded-lg">
+                                  {disp.address}
+                                </span>
                               </div>
-                            </div>
-                          )}
+                            )}
+
+                            {disp.extra && (
+                              <div className="grid gap-2">
+                                <span className="font-semibold text-violet-100">Additional Info:</span>
+                                <span className="text-violet-300 bg-black/20 p-2 rounded-lg">
+                                  {disp.extra}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Images */}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {disp.faceImg && (
+                              <div className="space-y-2">
+                                <span className="font-semibold text-violet-100">
+                                  {isUser ? "Face Image:" : "Profile Image:"}
+                                </span>
+                                <div className="aspect-video bg-gradient-to-br from-violet-900/30 to-violet-800/30 rounded-xl overflow-hidden shadow-lg flex items-center justify-center">
+                                  <Image
+                                    src={disp.faceImg}
+                                    alt="Face"
+                                    width={300}
+                                    height={200}
+                                    className="object-contain max-h-[200px]"
+                                  />
+                                </div>
+                              </div>
+                            )}
+
+                            {isUser && disp.thumbImg && (
+                              <div className="space-y-2">
+                                <span className="font-semibold text-violet-100">Thumb Image:</span>
+                                <div className="aspect-video bg-gradient-to-br from-violet-900/30 to-violet-800/30 rounded-xl overflow-hidden shadow-lg flex items-center justify-center">
+                                  <Image
+                                    src={disp.thumbImg}
+                                    alt="Thumb"
+                                    width={300}
+                                    height={200}
+                                    className="object-contain max-h-[200px]"
+                                  />
+                                </div>
+                              </div>
+                            )}
+                          </div>
                         </motion.div>
-                      </>
-                    )}
+                      );
+                    })}
                   </motion.div>
                 ) : (
+                  /* ─── NO MATCHES YET ─── */
                   <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     className="text-center text-violet-300 py-12"
                   >
                     <motion.div
-                      animate={{
-                        scale: [1, 1.1, 1],
-                        rotate: [0, 5, -5, 0]
-                      }}
-                      transition={{
-                        duration: 2,
-                        repeat: Infinity,
-                        repeatType: "reverse"
-                      }}
+                      animate={{ scale: [1, 1.1, 1], rotate: [0, 5, -5, 0] }}
+                      transition={{ duration: 2, repeat: Infinity, repeatType: "reverse" }}
                     >
                       <Fingerprint className="w-20 h-20 mx-auto mb-4 opacity-50" />
                     </motion.div>
                     <h3 className="text-xl font-medium mb-2 bg-gradient-to-r from-violet-400 to-violet-200 bg-clip-text text-transparent">
                       Ready to Search
                     </h3>
-                    <p className="text-lg opacity-70">Capture or upload a biometric to start searching</p>
+                    <p className="text-lg opacity-70">
+                      Capture or upload a biometric to start searching
+                    </p>
                   </motion.div>
                 )}
               </CardContent>

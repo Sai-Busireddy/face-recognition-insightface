@@ -331,54 +331,103 @@ async def search_user(req: SearchRequest, current_user: User = Depends(verify_jw
             except ValueError as e:
                 return {"match": False, "reason": str(e)}
 
-            # 1️⃣ get top-1 id + similarity score from match_faces()
-            rpc = supabase.rpc(
+            # ------------------------------------------------------------------
+            # 1️⃣  Users table
+            # ------------------------------------------------------------------
+            users_rpc = supabase.rpc(
                 "match_faces",
-                {"query_vec": emb.tolist(), "k": 1}
+                {"query_vec": emb.tolist(), "k": 3, "threshold": 0.36}
+            ).execute()
+            if getattr(users_rpc, "error", None):
+                raise HTTPException(500, f"DB error → {users_rpc.error}")
+
+            user_hits = users_rpc.data or []
+
+            # ------------------------------------------------------------------
+            # 2️⃣  Public profiles table
+            # ------------------------------------------------------------------
+            pubs_rpc = supabase.rpc(
+                "match_public_faces",
+                {"query_vec": emb.tolist(), "k": 3, "threshold": 0.5}
             ).execute()
 
-            # Supabase-py v2 returns SingleAPIResponse: use .error / .data
-            if getattr(rpc, "error", None):
-                raise HTTPException(status_code=500, detail=f"DB error → {rpc.error}")
+            print("🔍 Public hits →", pubs_rpc.data)
 
-            
-            hits = rpc.data or []
+            if getattr(pubs_rpc, "error", None):
+                raise HTTPException(500, f"DB error → {pubs_rpc.error}")
 
-            if not hits:
+            pub_hits = pubs_rpc.data or []
+
+            # ------------------------------------------------------------------
+            # 3️⃣  Merge hits – keep top‑k combined
+            # ------------------------------------------------------------------
+            combined: list[dict] = []
+
+            if user_hits:
+                combined.append({
+                    "source": "user",
+                    "score":  user_hits[0]["score"],
+                    "vec_id": user_hits[0]["id"],
+                })
+
+            if pub_hits:
+                combined.append({
+                    "source": "public_profile",
+                    "score":  pub_hits[0]["score"],
+                    "vec_id": pub_hits[0]["id"],
+                })
+
+            if not combined:
                 return {
-                    "match": False,
-                    "reason": "no_match_vector",
+                    "matches": [],
                     "search_info": {
                         "engine": "vector",
                         "searched_by": current_user.email
                     }
                 }
 
-            best_hit = hits[0]         # {'id': uuid, 'first_name': …, 'score': …}
+            # sort descending by cosine score
+            combined.sort(key=lambda x: x["score"], reverse=True)
 
-            # 2️⃣ pull the remaining columns your UI shows
-            resp = (
-                supabase.table("users")
-                .select(
-                    "id, first_name, last_name, address, face_image, thumb_image"
-                )
-                .eq("id", best_hit["id"])
-                .single()
-                .execute()
-            )
-            if getattr(resp, "error", None):
-                raise HTTPException(500, f"DB error → {resp.error}")
+            # ------------------------------------------------------------------
+            # 4️⃣  For each hit, fetch the full record
+            # ------------------------------------------------------------------
+            results = []
+            for hit in combined:
+                if hit["source"] == "user":
+                    resp = (
+                        supabase.table("users")
+                        .select("id, first_name, last_name, address, additional_info, face_image, thumb_image")
+                        .eq("id", hit["vec_id"])
+                        .single()
+                        .execute()
+                    )
+                    if getattr(resp, "error", None):
+                        continue
+                    results.append({
+                        "source": "user",
+                        "score":  hit["score"],
+                        "record": resp.data,
+                    })
+                else:  # public_profile
+                    # the public RPC already returned display_name etc.
+                    profile = next(p for p in pub_hits if p["id"] == hit["vec_id"])
+                    results.append({
+                        "source": "public_profile",
+                        "score":  hit["score"],
+                        "record": {
+                            "id":            profile["id"],
+                            "display_name":  profile["display_name"],
+                            "platform":      profile["platform"],
+                            "image_url":     profile.get("image_url"),
+                        },
+                    })
 
-            user_row = resp.data       # dict with all columns
-
+            # ------------------------------------------------------------------
+            # 5️⃣  Return results
+            # ------------------------------------------------------------------
             return {
-                "match": True,
-                "user": user_row,                     # UI reads .user.first_name etc.
-                "opencv_details": {                  # keep key name for UI
-                    "good_matches": 0,               # not used in vector path
-                    "match_ratio": best_hit["score"],
-                    "avg_distance": 1 - best_hit["score"]
-                },
+                "matches": results,
                 "search_info": {
                     "engine": "vector",
                     "searched_by": current_user.email
