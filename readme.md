@@ -534,6 +534,21 @@ frontend/.env.local
 frontend/.env.*.local
 ```
 
+### 🐳 Run with Docker (dev)
+
+```bash
+# 1 · clone and create your own .env from the template
+cp .env.example .env            # edit values
+
+# 2 · build images and start
+docker compose build
+docker compose up -d
+
+# 3 · browse
+#    API docs:   http://<HOST_IP>:8000/docs
+#    Front-end:  https://<HOST_IP>:3000
+```
+
 ---
 
 ## Troubleshooting

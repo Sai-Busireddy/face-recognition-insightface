@@ -1,0 +1,9 @@
+# never send dependencies or build output
+node_modules
+.next
+certificates
+certs
+
+# misc
+*.pem
+*.key

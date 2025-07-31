@@ -1,0 +1,13 @@
+# ---- node / next ------------------------------------------------------
+frontend/node_modules
+frontend/.next
+frontend/certificates
+frontend/certs
+
+# ---- python -----------------------------------------------------------
+backend/venv
+
+# ---- misc -------------------------------------------------------------
+*.pem
+*.key
+*.log
