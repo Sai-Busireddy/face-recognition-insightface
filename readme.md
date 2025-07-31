@@ -532,6 +532,7 @@ frontend/certificates/
 # Local env overrides
 frontend/.env.local
 frontend/.env.*.local
+```
 
 ---
 
