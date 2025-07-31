@@ -488,6 +488,53 @@ Run the full stack on your laptop while accessing it **securely (HTTPS)** from a
 
 ---
 
+## What changed (August 2025)
+
+### 🆕  Multi-source face search  
+
+- `/api/users/search` now returns **`matches` []** instead of a single object.  
+  - Each element has `source` (`"user"` or `"public_profile"`), `score`, and `record`.  
+  - Front-end renders **multiple result cards** when the same face exists in both tables.
+
+### ⚙️ Threshold tuning  
+
+| Table | RPC fn | `threshold` | `k` |
+|-------|--------|-------------|-----|
+| `users`             | `match_faces`            | 0.36 | 3 |
+| `public_profiles`   | `match_public_faces`     | 0.50 | 3 |
+
+### 🖥️ Front-end updates  
+
+- `page.tsx` now stores `matches` (array) rather than a single `result`.  
+- New inline `Match` type and dynamic card renderer keep existing UI styles.  
+- Toast message adapts to first match’s source.
+
+### 🌐 Env & rewrites recap  
+
+- `.env.local` still the single source of truth for `HOST_IP`, `NEXT_PUBLIC_HOST_URL`, and `NEXTAUTH_URL`.  
+- Selective Next.js rewrites forward only `/api/users/*`, `/api/face/*`, and `/api/register*` to FastAPI.  
+  - `/api/register` → `/api/register/` rule avoids double redirects on large payloads.  
+
+### 📄 README additions  
+
+- Updated **“How to test on a phone”** steps reflect new multi-match JSON and clarify grabbing a token via the front-end.  
+- Added explanation of the `matches` array with a sample response block.  
+
+### 🗄️ . gitignore  
+
+```gitignore
+# Local HTTPS certs
+frontend/certs/
+frontend/certificates/
+*.pem
+*.key
+
+# Local env overrides
+frontend/.env.local
+frontend/.env.*.local
+
+---
+
 ## Troubleshooting
 
 ### Common Issues
