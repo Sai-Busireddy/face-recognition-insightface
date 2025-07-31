@@ -4,8 +4,8 @@ services:
   api:
     build: ./backend
     container_name: face-api
-    ports:
-      - "8000:8000"
+    network_mode: host          # ← add
+    # ports: ["8000:8000"]      # ← remove
     environment:
       # -- Supabase credentials (required) ------------------------------
       SUPABASE_URL: ${SUPABASE_URL}
@@ -19,8 +19,8 @@ services:
   web:
     build: ./frontend
     container_name: face-web
-    ports:
-      - "3000:3000"
+    network_mode: host          # ← add
+    # ports: ["3000:3000"]      # ← remove
     environment:
       # -- Supabase creds (public), NextAuth secret, LAN IP -------------
       NEXT_PUBLIC_SUPABASE_URL: ${SUPABASE_URL}
