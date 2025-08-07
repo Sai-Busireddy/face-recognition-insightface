@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   api:
     build: ./backend
@@ -10,7 +8,8 @@ services:
       # -- Supabase credentials (required) ------------------------------
       SUPABASE_URL: ${SUPABASE_URL}
       SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
-      JWT_SECRET: ${NEXTAUTH_SECRET}
+      JWT_SECRET_KEY: ${NEXTAUTH_SECRET}
+      INSIGHTFACE_DEVICE: cpu
     volumes:
       # Persist InsightFace model downloads
       - insight_cache:/root/.insightface
@@ -29,12 +28,16 @@ services:
       HOST_IP: ${HOST_IP}
       NEXT_PUBLIC_HOST_URL: https://${HOST_IP}:3000
       NEXTAUTH_URL: https://${HOST_IP}:3000
+      # Tell Next.js where the self-signed cert/key live inside container
+      NEXT_HTTPS_CERT: /certs/localhost.pem
+      NEXT_HTTPS_KEY:  /certs/localhost-key.pem
     depends_on:
       - api
     restart: unless-stopped
     # Mount certificates folder if you want Next dev HTTPS files to persist
     volumes:
       - certificates_cache:/app/certificates
+      - ./certs:/certs:ro
 
 volumes:
   insight_cache:

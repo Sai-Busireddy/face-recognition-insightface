@@ -1,0 +1,18 @@
+# ─── docker-compose.windows.yml ───
+services:
+  api:
+    # “host” mode is not supported on Docker Desktop ↴
+    network_mode: bridge
+    ports: ["8000:8000"]
+
+  web:
+    network_mode: bridge
+    ports: ["3000:3000"]
+
+    # Windows browser will come in on https://localhost:3000
+    environment:
+      HOST_IP:           ${HOST_IP}
+      NEXT_PUBLIC_HOST_URL: https://${HOST_IP}:3000
+      NEXTAUTH_URL:         https://${HOST_IP}:3000
+      # Frontend talks to backend through Docker Desktop’s host-gateway
+      API_BASE_URL:     http://${HOST_IP}:8000
