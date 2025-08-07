@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, Fingerprint, User } from 'lucide-react';
 import { Button } from './ui/button';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
 import {
@@ -67,10 +68,14 @@ const NavBar = () => {
       transition={{ duration: 0.5 }}
     >
       <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-        <Link href="/" className="flex items-center gap-2 cursor-pointer">
+        {/*SpectrEdge Logo */}
+        <Link href="/" className="flex items-center gap-2" aria-label="Home">
+          <Image src="/spectredge_logo.png" alt="SpectrEdge" width={140} height={32} priority className="drop-shadow-[0_0_4px_rgba(255,255,255,0.85)]"/>
+        </Link>
+        {/* <Link href="/" className="flex items-center gap-2 cursor-pointer">
           <Fingerprint className="h-8 w-8 text-primary" />
           <span className="text-xl font-bold text-gradient">Biometric Verify</span>
-        </Link>
+        </Link> */}
         
         {/* Desktop Navigation */}
         <ul className="hidden md:flex items-center space-x-8">

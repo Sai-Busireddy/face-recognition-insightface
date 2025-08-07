@@ -55,6 +55,7 @@ export default function SearchPage() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchType, setSearchType] = useState<"face" | "thumb">("thumb");
+  const [searchAttempted, setSearchAttempted] = useState(false);
   const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {
@@ -229,6 +230,7 @@ export default function SearchPage() {
       console.error(err);
       toast.error("Search failed", { description: "Please try again later" });
     } finally {
+      setSearchAttempted(true);   // NEW – marks that at least one search ran
       setLoading(false);
     }
   };
@@ -491,7 +493,7 @@ export default function SearchPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-6">
-                {matches.length ? (
+                {matches.length > 0 ? (
                   /* ─── WHEN WE HAVE ≥1 MATCH ─── */
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
@@ -599,6 +601,24 @@ export default function SearchPage() {
                         </motion.div>
                       );
                     })}
+                  </motion.div>
+                ) : searchAttempted ? (
+                  /* ── 2) A SEARCH RAN BUT ZERO MATCHES  ──────────────── */
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="space-y-6"
+                  >
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-violet-900/50 to-violet-800/50 border border-violet-700/20 shadow-lg"
+                    >
+                      <span className="font-semibold text-violet-100">Match Found:</span>
+                      <span className="px-3 py-1 rounded-full text-sm font-medium bg-red-900/30 text-red-400">
+                        No
+                      </span>
+                    </motion.div>
                   </motion.div>
                 ) : (
                   /* ─── NO MATCHES YET ─── */
